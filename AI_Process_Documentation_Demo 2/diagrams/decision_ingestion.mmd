@@ -1,0 +1,24 @@
+flowchart TB
+ START["Nueva grabación"] --> S{"Origen de video"}
+ S -->|"Teams"| A["Microsoft Graph: obtener MP4 y VTT"]
+ S -->|"Externo"| B["Cargar MP4 en Blob"]
+ A --> AV{"¿Transcripción Teams disponible?"}
+ AV -->|"Sí"| AS{"¿Hablantes etiquetados?"}
+ AS -->|"Sí"| VALID["Usuario confirma instructor"]
+ AS -->|"No"| FLAG["Sin atribución: no filtrar instructor"]
+ AV -->|"No"| INDEX["Azure AI Video Indexer o Speech"]
+ B --> BV{"¿Adjuntó transcripción VTT/JSON?"}
+ BV -->|"Sí"| NORMAL["Normalizar transcripción existente"]
+ BV -->|"No"| INDEX
+ INDEX --> STATE{"¿Indexación completada?"}
+ STATE -->|"No"| WAIT["Persistir job y consultar/reintentar sin bloquear API"]
+ WAIT --> STATE
+ STATE -->|"Sí"| NORMAL
+ VALID --> NORMAL
+ FLAG --> NORMAL
+ NORMAL --> ALIGN["Alinear tiempos y revisar desfase MP4-VTT"]
+ ALIGN --> VIS["FFmpeg, OpenCV y OCR: evidencia visual"]
+ VIS --> LLM["Azure OpenAI: inferencias sustentadas"]
+ LLM --> JSON["Procedimientos en JSON único"]
+ JSON --> APPROVE["Revisión de PPTX y feedback por API"]
+ APPROVE --> GEN["PPTX / DOCX / PDF / Mermaid"]

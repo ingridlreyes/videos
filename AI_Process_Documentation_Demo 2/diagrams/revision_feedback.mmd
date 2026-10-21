@@ -1,0 +1,11 @@
+flowchart LR
+ PPTX["Usuario revisa PPTX V1"] --> MSG["Comentario + ID diapositiva / paso"]
+ MSG --> API["FastAPI: POST feedback"]
+ API --> STEP["Localizar step_id y evidencia original"]
+ STEP --> VERIFY{"¿Hay evidencia suficiente?"}
+ VERIFY -->|"Sí"| PROPOSE["Azure OpenAI propone cambio en JSON V2"]
+ VERIFY -->|"No"| MANUAL["Revisión humana / evidencia adicional"]
+ MANUAL --> PROPOSE
+ PROPOSE --> APPROVE["Confirmar modificación"]
+ APPROVE --> GEN["Regenerar únicamente documentación"]
+ GEN --> V2["PPTX y Word V2; V1 preservada"]

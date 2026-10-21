@@ -1,0 +1,83 @@
+flowchart TB
+  subgraph EXTERNAL["OTRO EQUIPO | Frontend corporativo"]
+    USER["Usuario: seleccionar Teams o cargar video externo"]
+    FE["Frontend agnóstico - consume API REST"]
+    USER --> FE
+  end
+
+  subgraph PLATFORM["NUESTRO EQUIPO | Backend e ingesta"]
+    API["Azure Container Apps - FastAPI"]
+    GRAPH["Microsoft Graph API - Teams"]
+    BLOB["Azure Blob Storage - videos y evidencias"]
+    ROUTER{{"Router de procedencia y disponibilidad de transcripción"}}
+    NORMALIZE["Normalizador: VTT / JSON / VI insights"]
+    API --> ROUTER
+  end
+
+  subgraph ROUTE_A["RUTA A: TEAMS"]
+    TM["Grabación MP4 + VTT existente"]
+    SPK["Validación de hablante/instructor"]
+    TM --> SPK
+  end
+  subgraph ROUTE_B["RUTA B: MP4 EXTERNO"]
+    UP["Upload MP4 a Blob"]
+    CHECK{{"¿Transcripción válida adjunta?"}}
+    VI["Azure AI Video Indexer - transcripción, speakers y timestamps"]
+    UP --> CHECK
+    CHECK -->|"No"| VI
+  end
+
+  subgraph WORKFLOW["PROCESAMIENTO COMPARTIDO"]
+    ORCH["Azure Durable Functions - Job ID, reintentos y fan-out"]
+    VISION["Azure Container Apps Jobs - FFmpeg + OpenCV"]
+    OCR["OCR en capturas originales"]
+    RULES["Motor de reglas - instructor y preguntas"]
+    LLM["Azure OpenAI - texto + fotogramas"]
+    SCHEMA["JSON canónico: pasos, evidencia, coordenadas y decisiones"]
+    VISION --> OCR
+    NORMALIZE --> RULES
+    RULES --> LLM
+    OCR --> LLM
+    VISION --> LLM
+    LLM --> SCHEMA
+  end
+
+  subgraph OUTPUT["REVISIÓN Y SALIDAS"]
+    PG["Azure Database for PostgreSQL - versiones y feedback"]
+    DOC["Container Apps Jobs - python-pptx, python-docx, Mermaid"]
+    FILES["PPTX editable / DOCX / PDF / Mermaid"]
+    SCHEMA --> PG
+    PG -->|"Version aprobada"| DOC
+    DOC --> FILES
+  end
+
+  subgraph SEC["SERVICIOS TRANSVERSALES"]
+    ENTRA["Microsoft Entra ID + Managed Identity"]
+    VAULT["Azure Key Vault"]
+    MONITOR["Application Insights / Azure Monitor"]
+  end
+
+  FE -->|"HTTPS + token corporativo"| API
+  API -->|"Permisos de aplicación"| GRAPH
+  GRAPH -->|"MP4 y VTT, si disponibles"| TM
+  SPK -->|"Con hablantes"| NORMALIZE
+  SPK -->|"Sin hablantes"| ROUTER
+  ROUTER -->|"Equipos / Teams"| GRAPH
+  ROUTER -->|"Video externo"| UP
+  CHECK -->|"Sí"| NORMALIZE
+  VI -->|"Insights con speakers"| NORMALIZE
+  TM --> BLOB
+  UP --> BLOB
+  BLOB --> ORCH
+  ORCH --> VISION
+  ORCH --> NORMALIZE
+  BLOB --> VISION
+  RULES -->|"Cambios con evidencia"| SCHEMA
+  SCHEMA --> BLOB
+  FILES --> BLOB
+  API <-->|"Estado, correcciones, URLs privadas"| FE
+  PG <-->|"Correcciones reportadas"| API
+  ENTRA -.-> API
+  VAULT -.-> API
+  MONITOR -.-> ORCH
+  MONITOR -.-> VISION
