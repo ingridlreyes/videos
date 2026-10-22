@@ -1,0 +1,17 @@
+flowchart TB
+  U["Frontend externo / demo Gradio"] --> API["Backend Python - FastAPI futuro / CLI actual"]
+  API --> IN{"¿Trae transcripción VTT?"}
+  IN -->|Sí| T["Normalizar VTT de Teams"]
+  IN -->|No| AUDIO["FFmpeg - extraer audio"]
+  AUDIO --> ASR["Azure OpenAI - gpt-4o-transcribe-diarize"]
+  ASR --> T
+  API --> RAW["RAW - Blob privado o archivos locales"]
+  RAW --> CV["FFmpeg + OpenCV - candidatos visuales"]
+  CV --> VISION["Azure OpenAI GPT-5.4-mini - visión"]
+  T --> VISION
+  VISION --> JSON["ANALYSIS - procedimiento JSON con evidencias"]
+  JSON --> QA["Revisión de pasos y coordenadas"]
+  QA --> PPT["python-pptx - PowerPoint con recuadros editables"]
+  QA --> DOC["python-docx - Guía de usuario"]
+  PPT --> DELIVERY["DELIVERY - Blob privado o archivos locales"]
+  DOC --> DELIVERY
